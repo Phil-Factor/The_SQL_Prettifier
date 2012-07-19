@@ -1,0 +1,106 @@
+Transform your SQL, C# and VB code with the Code Prettifier
+
+The Simple-Talk SQL Prettifier was first launched in July 06 in order to provide a means to prepare T-SQL code for HTML-based publication. I was driven to write it by my frustration at having to paste dull monochrome, badly-formatted SQL code into blogs and forums.
+
+The Prettifier proved very handy and has been used ever since for formatting the code in Simple-Talk blog and forum posts, as well as articles in the Workbench series.
+
+Since the launch of v1 of the Prettifier, commercial code beautifiers have emerged that are able to output HTML in both <code> and <pre> blocks in a convenient way. Also, commercial refactoring and documentation tools are now available that do what the prettifier does in a much more extensive, robust and scalable way. Nevertheless, new requirements kept cropping up – such as prettifying code specifically for wikis, and prettifying C# and VB as well as SQL code – that meant that, with a few tweaks and additions, the prettifier continued to earn its keep.
+
+Therefore, in this article I proudly present the all-new Simple-Talk Code Prettifier. In the following sections I describe what the tool does, provide an overview of its key features, and then briefly explain how it works. As always, however, actions speak louder than words, so I strongly encourage you to try it out for yourself. The prettifier is available to use, freely and without registration, on the Simple-Talk website:
+
+Test out the Simple-Talk Code Prettifier
+
+Take a piece of monochrome, poorly formatted SQL (or C# or VB) code, paste it in to "Source Code" tab of the prettifier, set your options on the left hand panel and click Prettify!
+
+The full source code is freely available from the Code Download link at the top of this article.
+What the prettifier does
+
+I've always liked the colour-based syntax highlighting of editors such as Query Analyzer and Management Studio. In fact, I stare at this sort of colour-coded SQL so often and for so long that the monochrome rendition looks all wrong. I can understand intellectually that strings don't have to be in red and comments in green but somehow it makes me feel unsettled when they aren't. I can read and understand code far quicker if it is colour-coded. I'm sure this is true for a lot of other SQL developers.
+
+However, if you just take the code from the Query Analyser and paste it into a forum, blog or wiki, you will be disappointed with the result. Something nice like this…
+
+INSERT INTO @results (item)
+   SELECT SUBSTRING(@string,
+                     s1.number+@LenDelimiter,
+                     MIN(s2.number)-s1.number-@LenDelimiter)
+     FROM    (SELECT [string]= @String )f
+   CROSS JOIN numbers s1
+   INNER JOIN numbers s2 ON s1.number< s2.number
+   WHERE s1.number<=LEN (@string)
+       AND  s2.number<=LEN (@string)
+       AND SUBSTRING(@string,s1.number,@LenDelimiter)=@Delimiter
+       AND SUBSTRING(@string,s2.number,@LenDelimiter)=@Delimiter
+   GROUP BY s1.number
+
+…will probably end up looking more like this:
+
+INSERT INTO @results (item)
+  SELECT SUBSTRING(@string,
+ s1.number+@LenDelimiter,
+MIN(s2.number)-s1.number-@LenDelimiter)
+    FROM    (SELECT [string]= @String )f
+  CROSS JOIN numbers s1  
+  INNER JOIN numbers s2 ON s1.number< s2.number
+  WHERE s1.number<=LEN (@string)
+AND  s2.number<=LEN (@string)
+ AND SUBSTRING(@string,s1.number,@LenDelimiter)=@Delimiter
+AND SUBSTRING(@string,s2.number,@LenDelimiter)=@Delimiter
+  GROUP BY s1.number
+
+You are slightly better off with SSMS, which will at least cut and paste code in colour, but it still requires some work to get it into respectable shape for pasting onto a web page, such as a blog entry or a forum.
+
+The prettifier is designed, primarily, to resolve these issues. It takes SQL, C# or VB code and prepares it for rendering correctly in a browser by doing the colour highlighting, selecting the correct font, doing the indenting with non-breaking spaces, and changing all the characters that aren't standard into HTML entities.
+
+It will allow you to submit code to a blog, forum, email or article, and have it displayed in proper color, and with the correct indentation.
+Prettifier features
+
+A brief run down of the main features and some of the issues we had to tackle.
+Prettifying and optional formatting of SQL
+
+Preserving the correct formatting and color-coding of SQL is one issue, and the main one that the prettifier was intended to tackle. However, occasionally, one also needs to prettify poorly formatted, monochrome code in order to make it more readable. The prettifier will indent code consistently, put in line breaks, and capitalise keywords.
+
+NOTE:
+The Prettifier does not do a proper syntactical analysis – it only tokenises. Therefore, the prettifier should never be used to change the actual code to make it easier to work on. For that purpose you should use a proper refactoring tool such as SQL Refactor.
+
+We discovered that tab-stops in the Query Analyser were set to eight spaces, whereas they were set to four in SSMS. Joe Celco recommends three in his great book. This meant that we had to parameterise this so as to make code prepared in SSMS render correctly.
+
+Another problem we didn't forsee is that the <pre> and <code> blocks are rendered in very different sizes in different browsers. I used to dislike specifying font sizes for reasons of accessibility for partially sighted, but, so far, the only answer I've found is to nail down the size of font, although I have made it configurable.
+C# and VB support
+
+As well as SQL Server articles, Simple-Talk also publishes articles in VB and C#, and the editor wanted them nicely formatted too. I added both as Languages that the Prettifier supported. After all, the whole thing is table-driven, so adding a new language is pretty trivial. I'd like to move to loading the table as an XML file, but to keep SQL 2000 compatibility, it stays as a table. As soon as we get a good article with Perl or Jscript in it, I'll add them too.
+Wiki support
+
+Next, someone wanted to paste code into Wikis, and discovered that they didn't render properly, so we needed a third set of rules for tags, along with Blog-style (which didn't allow SPAN tags) and Article-style (the FONT tag is deprecated in XHTML)
+Exporting database routines to HTML
+
+I use the prettifier occasionally to write out the routines from within databases as HTML. This is one of the key uses I had in mind when originally developing the tool, I'm not sure whether it is a good idea now that SQL Doc does it for you automatically; in particularly as it does all database objects including views and tables, gets the extended properties, and gives you a whole lot of other information. However, if you are a die-hard DBA who wants to dump out all our project source-code as HTML then it might as well be as painless as possible.
+
+The first step was to complete and correct the facility to prettify a stored procedure or function by name.
+
+spPrettify @RoutineName='uftSplitString'
+
+This also saved a lot of time for us when editing submitted articles as we could test the code and then 'set it' in HTML form much quicker.
+
+The next step is to use this 'prettify-by-name' feature to write out all your routines as HTML files. The code to do the writing out of the code is implemented in the spWriteOutAllRoutines procedure. I've stripped it down to bare bones, and it is easy to tailor it to your taste and preferences.
+How the prettifier works
+
+The prettifier is implemented as a single T-SQL stored procedure. I have to admit that the idea of attempting this sort of task in a stored procedure rather than a more suitable language such as C# was due to a certain perversity on my part. I enjoyed the challenge.
+
+I wanted the prettifier to work in SQL Server 2000 as well as SQL Server 2005. This caused me a few problems. I quickly realised that the input had to be in a text variable, and the output too would potentially be far larger than the puny varchar(8000) that is available in SQL 2000. Working with text variables is never easy, and here there was likely to be a lot of text processing. As few string functions work with text variables, this required some nimble work passing the work piece-by-piece into varchars for pummelling.
+
+As far as the output was concerned, a text variable was entirely impossible to implement. In the end I decided to output the results as a table, splitting the output into a number of rows with a column of varchar(8000).
+
+The reasons why it is a bad idea to do this sort of intensive string parsing work in a stored procedure, requiring a great deal of iteration, are immediately obvious. If one gives the stored procedure a large amount of SQL Source, it runs very slowly, but for what I wanted the code for, that didn't matter; I console myself that it is still a great deal quicker and easier than doing it by hand. My original intention was that this stored procedure should become a component in a system that allowed a database to write out an HTML representation of its source-code via an overnight batch so speed wasn't the first priority.
+
+The stored procedure is a long one, but this is almost entirely due to the fact that it is writing to two table variables. One table holds all the tokens to be recognised, and the other holds the HTML entities that have to be substituted for the non-ASCII and reserved characters so that these characters are properly rendered on the browser. Of course, it would probably make sense to have the contents of these tables in a permanent table but we are encouraging you to try the routine and so it makes installation easier if we do it this way.
+
+The actual logic is pretty simple. The routine runs as a 'state machine', in that each iteration of the parser operates on the text according to the result of the previous iteration. It chops off white-space and examines the start of the string by finding the longest token in the token table that gets a match with the start of the string. It then saves the token, if it finds one, along with its type. It changes state accordingly. If it has found a string, it must then find the end of it; if it has found an @ variable, it must get the rest of the variable, and so on. This sort of design looks clumsy, but it is very easy to modify and debug.
+
+Once it has divided up the source code into its elements, it then re-assembles the original source. When it gets to white space, it de-tabbifies it and changes the spaces into 'hard spaces' (or non-breaking spaces) that HTML will leave as-is. It inserts either <span> blocks or the archaic (deprecated) <font> blocks for those cases where the forum or blog software removes <span> blocks. I usually try the span approach first and, if it doesn't work, use the font version.
+
+Because it was reasonably simple to do, I added code into the white-space processing to allow a certain amount of reformatting. Compared with SQL Refactor, it hardly starts on the job, but it does just enough to make the results reasonably readable. The reformatting is again table-driven to allow new languages to be added.
+What I do and don't use it for
+
+As I stated earlier, I don't really intend the prettfier to be used as a code reformatting tool. If you want one of those I can unashamedly recommend SQL Refactor, as I am one of its greatest admirers, and use it the whole time. I just use SQL Refactor as a SQL Beautifier and Lint. At this, it excels. It is a joy to be shown what variables are no longer used, and a pleasure to have the code in the Query window instantly changed to make it readable. Every reformatting operation can be adjusted to personal preferences. It always takes me aback to meet someone who doesn't use it as a productivity tool for developing databases. It is an essential.
+
+I do, however, use the Prettifier a great deal, both for formatting the code in articles, and for writing out the routines from within databases as HTML. Most of all, I always have it handy whilst browsing blogs and forums just in case I decide to put in a reply and want the code I paste in to be easily readable.
